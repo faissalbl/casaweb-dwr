@@ -1,0 +1,134 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test page</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type='text/javascript' src='/casaweb/dwr/interface/MesReferenciaManager.js'></script>
+        <script type='text/javascript' src='/casaweb/dwr/engine.js'></script>
+        <script type='text/javascript' src='/casaweb/dwr/util.js'></script>
+        <script type='text/javascript' src='javascript/jquery-1.8.3.min.js'></script>
+        <script>    
+            var mesReferenciasCache = {};
+            
+            $(function() {
+                dwr.util.useLoadingMessage();
+                fillTable();
+            });
+            
+            function fillTable() {
+                MesReferenciaManager.findEntities(function(mesesReferencia) {
+                    //delete all the rows except the pattern row
+                    dwr.util.removeAllRows("mesesReferencia", {filter:function(tr){
+                        return (tr.id != "pattern");
+                    }});
+                   for (var i = 0; i < mesesReferencia.length; i++) {
+                       var mesReferencia = mesesReferencia[i];
+                       var id = mesReferencia.id;
+                       dwr.util.cloneNode("pattern", {idSuffix: id});
+                       $("#patternMes" + id).html(mesReferencia.mes);
+                       $("#patternAno" + id).html(mesReferencia.ano);
+                       $("#pattern" + id).css("display", "table-row");
+                       mesReferenciasCache[id] = mesReferencia;
+                   } 
+                });
+            }
+            
+            function mesReferenciaOpenClicked(elemId) {
+                var idMesRef = elemId.substring(17);
+                MesReferenciaManager.abrirMesReferencia(idMesRef, {
+                    callback:function() {
+                        window.location.pathname = '/casaweb/mesReferencia/view.html';
+                    }
+                });
+            }  
+            
+            function mesReferenciaWriteClicked() {
+                var mesReferencia = {id: null, mes: null, ano: null};
+                dwr.util.getValues(mesReferencia);
+                if (isExisting(mesReferencia)) {
+                    alert("Este mês já está cadastrado");
+                } else {
+                    var validateMsg = validateMesReferencia(mesReferencia);
+                    if (validateMsg) {
+                        alert(validateMsg);
+                    } else {
+                        MesReferenciaManager.persist(mesReferencia, function(){
+                            dwr.util.setValues({id: null, mes: null, ano: null});
+                            fillTable();
+                        });                   
+                    }
+                }
+            }
+            
+            function validateMesReferencia(mesReferencia) {
+                var validateMsg = "";
+                var commonText = ": campo obrigatório"
+                if (!mesReferencia.mes) validateMsg += "Mês" + commonText;
+                if (!mesReferencia.ano) validateMsg += "\nAno" + commonText;
+                return validateMsg;
+            }
+            
+            function mesReferenciaEditClicked() {
+                
+            }
+            
+            function isExisting(mesReferencia) {
+                for(key in mesReferenciasCache) {
+                    var cachedMR = mesReferenciasCache[key];
+                    if (cachedMR.mes == mesReferencia.mes && cachedMR.ano == mesReferencia.ano) {
+                        return true;                        
+                    }                    
+                };
+                return false;
+            }
+
+            function writeObj(obj) {
+                var strObj = "";
+                $.each(obj, function(name, value) {
+                    strObj = strObj.concat(", " + name + ": " + value);
+                });
+                return strObj;
+            }
+        </script>
+        <style>
+            table tr td {
+                padding: 5px;
+            }
+        </style>
+    </head>
+    <body style="padding: 5px;">
+        <h4>M&ecirc;ses de Refer&ecirc;ncia</h4>
+        <table>
+            <thead>
+                <th>M&ecirc;s</th>
+                <th>Ano</th>
+                <th>A&ccedil;&atilde;o</th>
+            </thead>
+            <tbody id="mesesReferencia">
+                <tr id="pattern" style="display: none;">
+                    <td id="patternMes"></td>
+                    <td id="patternAno"></td>
+                    <td><input id="patternButtonOpen" type="button" value="Abrir" onclick="mesReferenciaOpenClicked(this.id);" /></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr />
+        
+        <h4>Novo M&ecirc;s</h4>
+        <input type="hidden" id="id" />
+        <div>
+            <label for="mes">M&ecirc;s: </label>
+            <input type="text" id="mes" />
+        </div>
+        <div>
+            <label for="ano">Ano: </label>
+            <input type="text" id="ano" />
+        </div>    
+        <input type="button" value="Salvar" onclick="mesReferenciaWriteClicked();" />
+   </body>
+</html>

@@ -1,0 +1,224 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type='text/javascript' src='/casaweb/dwr/interface/DespesaManager.js'></script>
+        <script type='text/javascript' src='/casaweb/dwr/interface/TipoDespesaManager.js'></script>
+        <script type='text/javascript' src='/casaweb/dwr/engine.js'></script>
+        <script type='text/javascript' src='/casaweb/dwr/util.js'></script>
+        <script type='text/javascript' src='../javascript/jquery-1.8.3.min.js'></script>
+        <script>
+            $(function(){
+                dwr.util.useLoadingMessage();
+                fillTables();
+            });
+                        
+            var despesasCache = {};
+            
+            function fillTables() {
+                fillDespesas();
+                fillTiposDespesaOptions();
+            }
+            
+            function fillDespesas() {
+                DespesaManager.findEntities(function(despesas) {
+                    //delete all the rows except the pattern row
+                    dwr.util.removeAllRows("despesas", {filter:function(tr){
+                        return (tr.id != "despesaPattern");
+                    }});
+                    //create a new set cloned from the pattern row
+                    for (var i = 0; i < despesas.length; i++) {
+                        var despesa, id;
+                        despesa = despesas[i];
+                        id = despesa.id;
+                        dwr.util.cloneNode("despesaPattern", {idSuffix: id});
+                        $('#despesaTipo' + id).html(despesa.tipoDespesa.nome);
+                        $('#despesaValor' + id).html(despesa.valor);
+                        $('#despesaPattern' + id).css('display', 'table-row');
+                        despesasCache[id] = despesa;
+                    }
+                });
+            }
+            
+            function despesaEditClicked(elemId) {
+                //properties
+                var despesaId = elemId.substring(11);
+                var despesa = despesasCache[despesaId];
+                dwr.util.setValues({id: despesa.id, tipoDespesa: despesa.tipoDespesa.id, valor: despesa.valor});                
+            }
+            
+            function fillTiposDespesaOptions() {
+                dwr.util.removeAllOptions("tipoDespesa");
+                TipoDespesaManager.findEntities(function(tiposDespesa) {
+                    dwr.util.addOptions("tipoDespesa", tiposDespesa, "id", "nome");
+                });   
+            }
+            
+            function despesaDeleteClicked(elemId) {
+                
+            }
+            
+            function despesaWriteClicked() {
+                var despesa = {id: null, tipoDespesa: null, valor: null};
+                dwr.util.getValues(despesa);
+                var validateMsg = validateDespesa(despesa);
+                if (validateMsg) {
+                    alert(validateMsg);
+                } else {
+                    TipoDespesaManager.find(despesa.tipoDespesa, {callback:function(tipoDespesa){
+                        despesa.tipoDespesa = tipoDespesa;
+                        DespesaManager.persist(despesa, {callback:function(){
+                            fillDespesas();
+                            despesa = {id: null, valor: null};
+                            dwr.util.setValues(despesa);
+                        }});
+                    }});                    
+                }
+            }
+            
+            function validateDespesa(despesa) {
+                var validateMsg = "";
+                var commonText = ": campo obrigatório";
+                if (!(despesa.tipoDespesa && despesa.tipoDespesa.length)) {
+                    validateMsg += "Tipo despesa" + commonText;
+                } 
+                if (!despesa.valor) {
+                    validateMsg += "\nValor" + commonText;
+                }
+                return validateMsg;
+            }
+            
+            function writeObj(obj) {
+                var strObj = "";
+                $.each(obj, function(name, value) {
+                    strObj = strObj.concat("\n" + name + ": " + value);
+                });
+                alert(strObj);
+            }
+       </script>
+       <style>
+           table tr td {
+               padding: 5px;
+           }
+       </style>
+    </head>
+    <body style="padding: 5px;">
+        <h4>Despesas</h4>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                    <th>A&ccedil;&atilde;o</th>
+                </tr>
+            </thead>
+            <tbody id="despesas">
+                <tr id="despesaPattern" style="display:none;">
+                    <td id="despesaTipo">Tipo</td>
+                    <td id="despesaValor">Valor</td>
+                    <td>
+                        <input id="despesaEdit" type="button" value="Editar" onclick="despesaEditClicked(this.id);" />
+                        <input id="despesaDelete" type="button" value="Remover" onclick="despesaDeleteClicked(this.id);" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr />
+
+        <h4>Despesa</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                    <th></th>
+                </tr>                
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input id="id" type="hidden" /></td>
+                    <td><select id="tipoDespesa"></select></td>
+                    <td><input id="valor" type="text" /></td>
+                    <td><input id="despesaWrite" type="button" value="Salvar" onclick="despesaWriteClicked();" /></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr />
+
+<!--    
+            <f:facet name="footer">
+                <h:outputLabel value="Total: " />
+                <h:outputLabel value="#{mesReferenciaManager.calcTotalDespesas(despesaManager.findEntities())}">
+                    <f:converter converterId="FloatConverter" />
+                </h:outputLabel>                            
+            </f:facet>
+
+            <h:column>
+                <h:dataTable cellpadding="10" 
+                             id="recebimentos" var="r"
+                             value="#{recebimentoManager.findEntities()}">
+                    <f:facet name="header">Recebimentos</f:facet>
+                    <h:column>
+                        <f:facet name="header">Membro</f:facet>
+                        <h:outputText value="#{r.usuario.nome}" />
+                    </h:column>
+                    <h:column>
+                        <f:facet name="header">Valor</f:facet>
+                        <h:outputText value="#{r.valor}">
+                            <f:converter converterId="FloatConverter" />
+                        </h:outputText>
+                    </h:column>
+                    <h:column>
+                        <h:commandLink value="Apagar" action="#{recebimentoManager.remove(r)}">
+                            <f:ajax render="@form" />
+                        </h:commandLink>
+                    </h:column>
+                    <f:facet name="footer">
+                        <h:outputLabel value="Total: " />
+                        <h:outputLabel value="#{mesReferenciaManager.calcTotalRecebimentos(recebimentoManager.findEntities())}">
+                            <f:converter converterId="FloatConverter" />
+                        </h:outputLabel>                            
+                    </f:facet>
+                </h:dataTable><br />
+            </h:column>
+
+            <h:column id="summaryColumn">
+                <h:dataTable cellpadding="10"
+                             var="summary"
+                             value="#{mesReferenciaManager.getSummaryData(mesReferencia)}">
+                    <f:facet name="header">Resumo</f:facet>
+                    <h:column>
+                        <f:facet name="header">Membro</f:facet>
+                        <h:outputText value="#{summary.usuario}" />
+                    </h:column>
+                    <h:column>
+                        <f:facet name="header">Total Pago</f:facet>
+                        <h:outputText value="#{summary.totalRecebimentos}">
+                            <f:converter converterId="FloatConverter" />
+                        </h:outputText>
+                    </h:column>
+                    <h:column>
+                        <f:facet name="header">Saldo Devedor</f:facet>
+                        <h:outputText value="#{summary.saldoDevedor}">
+                            <f:converter converterId="FloatConverter" />
+                        </h:outputText>
+                    </h:column>
+                </h:dataTable>
+            </h:column>
+        </h:panelGrid>
+
+        <h:commandButton value="Nova Despesa" action="#{despesaManager.createNew}" immediate="true" />
+        <h:commandButton value="Novo Recebimento" action="#{recebimentoManager.createNew}" immediate="true" />
+        <h:button outcome="back" value="Voltar" />
+-->
+        <a href="#" onclick="window.location.pathname='/casaweb/tipoDespesa/edit.html'">Cadastrar Tipos de Despesa</a>
+    </body>
+</html>

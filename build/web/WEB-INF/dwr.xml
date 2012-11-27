@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<dwr>  
+    <allow>  
+        <create creator="new" javascript="MesReferenciaManager">
+            <param name="class" value="br.com.fbl.casa.manager.MesReferenciaManager" />
+        </create>
+        <create creator="new" javascript="DespesaManager">
+            <param name="class" value="br.com.fbl.casa.manager.DespesaManager" />
+        </create>
+        <create creator="new" javascript="TipoDespesaManager">
+            <param name="class" value="br.com.fbl.casa.manager.TipoDespesaManager" />
+        </create>
+        <convert match="br.com.fbl.casa.model.MesReferencia" converter="bean" />
+        <convert match="br.com.fbl.casa.model.Despesa" converter="bean"/>
+        <convert match="br.com.fbl.casa.model.TipoDespesa" converter="bean" />
+    </allow>  
+</dwr>  
